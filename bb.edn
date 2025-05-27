@@ -1,0 +1,2 @@
+{:deps {io.github.borkdude/unused-deps {:local/root "."}}
+ :bbin/bin {unused-deps {:main-opts ["-x" "borkdude.unused-deps/exec-fn"]}}}
