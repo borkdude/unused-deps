@@ -4,9 +4,11 @@ Find unused dependencies in `deps.edn` or `project.clj`.
 
 ## Installation
 
-Run with babashka.
+### Babashka
 
-### bbin
+With babashka you have the following options:
+
+#### bbin
 
 To install this tool with [bbin](https://github.com/babashka/bbin):
 
@@ -21,7 +23,7 @@ $ unused-deps
 {:unused-deps [[clj-kondo/clj-kondo {:mvn/version "2025.04.07"}]]}
 ```
 
-### Babashka tasks
+#### Babashka tasks
 
 Add this to your `bb.edn`:
 
