@@ -28,14 +28,13 @@ $ unused-deps
 Add this to your `bb.edn`:
 
 ```
-:tasks {unused-deps {:task (prn (exec 'borkdude.unused-deps/unused-deps))}}
-```
-
-along with how you would normally add this library to `deps.edn`, so under `:deps` add:
-
-```
 :deps {io.borkdude/unused-deps {:git/sha "<latest-sha>"}
+:tasks {unused-deps {:task (prn (exec 'borkdude.unused-deps/unused-deps))
+                     :exec-args {...} ;; other options here
+                    }}
 ```
+
+Then run `bb unused-deps`
 
 ### Clojure
 
