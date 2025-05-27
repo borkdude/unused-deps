@@ -59,6 +59,11 @@ not, bug me on slack or make a Github issue.
 The source paths are checked for namespaces that are required. If there is a
 `.jar` file that doesn't contain any of these namespaces it's considered unused.
 
+## Current limitations
+
+Currently `unused-deps` only finds unused mvn dependencies. Support for git
+deps + local roots should be possible to add though.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
