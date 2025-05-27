@@ -18,10 +18,13 @@
               (impl/when-pred fs/exists? (fs/file root-dir "project.clj"))))
         source-paths (map #(fs/file root-dir %) (:source-paths opts ["src"]))
         clojure-files (mapcat #(fs/glob % "**.{clj,cljc,cljs}") source-paths)
-        requires (into #{} (mapcat (fn [file]
-                                     (->> (impl/parse-ns-form file)
-                                          :requires
-                                          (map :lib))) clojure-files))
+        requires+imports (into #{} (mapcat (fn [file]
+                                             (let [{:keys [requires imports]}
+                                                   (impl/parse-ns-form file)]
+                                               (concat (->>
+                                                       requires
+                                                       (map :lib))
+                                                       imports))) clojure-files))
         lein? (= "project.clj" (fs/file-name deps-file))
         deps (if lein?
                (:deps (:deps (lein2deps/lein2deps {:project-clj deps-file})))
@@ -36,7 +39,7 @@
                             :let [jar (impl/find-dep-on-classpath dep classpath-seq)]
                             :when jar
                             :let [lib-namespaces (keys (impl/index-jar {} jar))]
-                            :when (not (some #(contains? requires %) lib-namespaces))]
+                             :when (not (some #(contains? requires+imports %) lib-namespaces))]
                          dep))}))
 
 (defn exec-fn [opts]

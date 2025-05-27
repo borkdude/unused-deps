@@ -5,7 +5,7 @@
 
 #_(clojure.repl.deps/sync-deps)
 
-(def suffix-re #"\.clj$|\.cljs$|\.cljc$")
+(def suffix-re #"\.clj$|\.cljs$|\.cljc$|\.class")
 
 (defn when-pred [pred x]
   (when (pred x) x))
@@ -44,7 +44,106 @@
               part))
           classpath-seq)))
 
-(def edamame-opts (e/normalize-opts {:allow :all
+;; copied form edamame to include support for :import
+
+(defn- libspec?
+  "Returns true if x is a libspec"
+  [x]
+  (or (symbol? x)
+      (and (vector? x)
+           (or
+            (nil? (second x))
+            (keyword? (second x))))))
+
+(defn- prependss
+  "Prepends a symbol or a seq to coll"
+  [x coll]
+  (if (symbol? x)
+    (cons x coll)
+    (concat x coll)))
+
+(defn- load-lib
+  [prefix lib & options]
+  (let [lib (if prefix (symbol (str prefix \. lib)) lib)
+        opts (apply hash-map options)]
+    (assoc opts :lib lib)))
+
+(defn- load-libs
+  [kw args]
+  (let [args* (cons kw args)
+        flags (filter keyword? args*)
+        opts (interleave flags (repeat true))
+        args* (filter (complement keyword?) args*)]
+    (mapcat (fn [arg]
+              (if (libspec? arg)
+                [(apply load-lib nil (prependss arg opts))]
+                (let [[prefix & args*] arg]
+                  (when (nil? prefix)
+                    (throw (ex-info "prefix cannot be nil"
+                                    {:args args})))
+                  (mapcat (fn [arg]
+                            [(apply load-lib prefix (prependss arg opts))])
+                          args*))))
+            args*)))
+
+(defn- -ns
+  [[_ns name & references]]
+  (let [docstring  (when (string? (first references)) (first references))
+        references (if docstring (next references) references)
+        name (if docstring
+               (vary-meta name assoc :doc docstring)
+               name)
+        metadata   (when (map? (first references)) (first references))
+        references (if metadata (next references) references)
+        references (filter seq? references)
+        references (group-by first references)
+        requires (mapcat #(load-libs :require (rest %)) (:require references))
+        imports (mapcat (fn [[_ & specs]]
+                          (mapcat (fn [spec]
+                                    (if (symbol? spec) spec
+                                        (let [[pkg & classes] spec]
+                                          (map #(symbol (str pkg "." %)) classes))))
+                                  specs)) (:import references))]
+    ;;(println exp)
+    {:current name
+     :meta metadata
+     :requires requires
+     :aliases (reduce (fn [acc require]
+                        (if-let [alias (or (:as require)
+                                           (:as-alias require))]
+                          (assoc acc alias (:lib require))
+                          acc))
+                      {}
+                      requires)
+     :imports imports}))
+
+(defn parse-ns-form* [ns-form]
+  (-ns ns-form))
+
+;;;; Scratch
+
+(comment
+  (parse-ns-form* '(ns foo (:require [foo :as dude])))
+  (parse-ns-form* '(ns foo (:import [foo Bar Baz])))
+  (parse-ns-form* '(ns clj-kondo.impl.analysis.java
+                     {:no-doc true}
+                     (:require
+                      [clj-kondo.impl.utils :as utils]
+                      [clojure.java.io :as io]
+                      [clojure.set :as set]
+                      [clojure.string :as str])
+                     (:import
+                      [com.github.javaparser JavaParser Range]
+                      [com.github.javaparser.ast
+                       CompilationUnit
+                       Modifier
+                       Modifier$Keyword
+                       Node] )))
+  )
+
+
+
+(def edamame-opts (e/normalize-opts {:all true
                                      :features #{:clj}
                                      :auto-resolve-ns true}))
 
@@ -56,8 +155,10 @@
           nil
           (if (and (seq? ns-form)
                    (= 'ns (first ns-form)))
-            (e/parse-ns-form ns-form)
+            (parse-ns-form* ns-form)
             (recur)))))))
+
+
 
 (comment
   (find-dep-on-classpath ['io.github.borkdude/lein2deps {:mvn/version "0.1.0"}] (str/split (System/getProperty "java.class.path") #":"))
