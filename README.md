@@ -8,6 +8,20 @@ Find unused dependencies in `deps.edn` or `project.clj`.
 
 With babashka you have the following options:
 
+#### Babashka tasks
+
+Add this to your `bb.edn`:
+
+``` clojure
+:deps {io.borkdude/unused-deps {:git/sha "<latest-sha>"}
+:tasks {unused-deps {:task (prn (exec 'borkdude.unused-deps/unused-deps))
+                     :exec-args {...} ;; other options here
+                    }}
+```
+
+Then run `bb unused-deps`. For more information about babashka tasks, look
+[here](https://book.babashka.org/#tasks).
+
 #### bbin
 
 To install this tool with [bbin](https://github.com/babashka/bbin):
@@ -22,19 +36,6 @@ Then run in your project:
 $ unused-deps
 {:unused-deps [[clj-kondo/clj-kondo {:mvn/version "2025.04.07"}]]}
 ```
-
-#### Babashka tasks
-
-Add this to your `bb.edn`:
-
-``` clojure
-:deps {io.borkdude/unused-deps {:git/sha "<latest-sha>"}
-:tasks {unused-deps {:task (prn (exec 'borkdude.unused-deps/unused-deps))
-                     :exec-args {...} ;; other options here
-                    }}
-```
-
-Then run `bb unused-deps`
 
 ### Clojure
 
