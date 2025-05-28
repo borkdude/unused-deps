@@ -100,7 +100,7 @@
         requires (mapcat #(load-libs :require (rest %)) (:require references))
         imports (mapcat (fn [[_ & specs]]
                           (mapcat (fn [spec]
-                                    (if (symbol? spec) spec
+                                    (if (symbol? spec) [spec]
                                         (let [[pkg & classes] spec]
                                           (map #(symbol (str pkg "." %)) classes))))
                                   specs)) (:import references))]
@@ -125,6 +125,7 @@
 (comment
   (parse-ns-form* '(ns foo (:require [foo :as dude])))
   (parse-ns-form* '(ns foo (:import [foo Bar Baz])))
+  (parse-ns-form* '(ns foo (:import foo.bar.Baz)))
   (parse-ns-form* '(ns clj-kondo.impl.analysis.java
                      {:no-doc true}
                      (:require
@@ -138,7 +139,7 @@
                        CompilationUnit
                        Modifier
                        Modifier$Keyword
-                       Node] )))
+                       Node])))
   )
 
 
