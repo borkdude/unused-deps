@@ -1,4 +1,4 @@
-(ns borkdude.unused-deps 
+(ns borkdude.unused-deps
   (:require
    [babashka.fs :as fs]
    [babashka.process :as p]
@@ -19,6 +19,9 @@
         source-paths (map #(fs/file root-dir %) (:source-paths opts ["src"]))
         clojure-files (mapcat #(fs/glob % "**.{clj,cljc,cljs}") source-paths)
         requires+imports (into #{} (mapcat (fn [file]
+                                             (when (:debug opts)
+                                               (binding [*out* *err*]
+                                                 (println "Analyzing file:" (str file))))
                                              (let [{:keys [requires imports]}
                                                    (impl/parse-ns-form file)]
                                                (concat (->>
@@ -42,7 +45,9 @@
                              :when (not (some #(contains? requires+imports %) lib-namespaces))]
                          dep))}))
 
-(defn exec-fn [opts]
+(defn exec-fn
+  {:org.babashka/cli {:spec {:source-paths {:coerce []}}}}
+  [opts]
   (binding [*print-namespace-maps* false] (prn (unused-deps opts))))
 
 (comment
