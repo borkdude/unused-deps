@@ -13,7 +13,7 @@ With babashka you have the following options:
 Add this to your `bb.edn`:
 
 ``` clojure
-:deps {io.borkdude/unused-deps {:git/sha "<latest-sha>"}
+:deps {io.github.borkdude/unused-deps {:git/sha "<latest-sha>"}
 :tasks {unused-deps {:task (prn (exec 'borkdude.unused-deps/unused-deps))
                      :exec-args {...} ;; other options here
                     }}
