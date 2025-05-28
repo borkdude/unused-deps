@@ -145,6 +145,7 @@
 
 (def edamame-opts (e/normalize-opts {:all true
                                      :features #{:clj}
+                                     :read-cond :allow
                                      :auto-resolve-ns true}))
 
 (defn parse-ns-form [file]
