@@ -1,0 +1,2 @@
+{:deps {clj-kondo/clj-kondo {:git/url "https://github.com/clj-kondo/clj-kondo"
+                             :git/sha "b663e645e88b7eac999c026e778a39e7c81d23a3"}}}

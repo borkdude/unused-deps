@@ -1,3 +1,17 @@
 {:deps {io.github.borkdude/unused-deps {:local/root "."}}
  :bbin/bin {unused-deps {:main-opts ["-x" "borkdude.unused-deps/exec-fn"]}}
- :tasks {unused-deps {:task (prn (exec 'borkdude.unused-deps/unused-deps))}}}
+ :tasks {:requires ([clojure.string :as str])
+         unused-deps {:task (prn (exec 'borkdude.unused-deps/unused-deps))}
+         changelog {:task (let [changelog (slurp "CHANGELOG.md")
+                                replaced (str/replace
+                                          changelog
+                                          (re-pattern " #(\\d+)")
+                                          (fn [[_ issue after]]
+                                            (format " [#%s](https://github.com/borkdude/unused-deps/issues/%s)%s"
+                                                    issue issue (str after))))
+                                replaced (str/replace replaced
+                                                      (re-pattern "@([a-zA-Z0-9-_]+)([, \\.)])")
+                                                      (fn [[_ name after]]
+                                                        (format "[@%s](https://github.com/%s)%s"
+                                                                name name after)))]
+                            (spit "CHANGELOG.md" replaced))}}}

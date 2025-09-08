@@ -8,7 +8,7 @@
    [lein2deps.api :as lein2deps]))
 
 (defn unused-deps [opts]
-  (let [root-dir (:root-dir opts)
+  (let [root-dir (some-> (:root-dir opts) str)
         deps-file
         (if-let [f (:deps-file opts)]
           (if (fs/relative? f)
@@ -28,7 +28,7 @@
                                                        requires
                                                        (map :lib))
                                                        imports))) clojure-files))
-        lein? (= "project.clj" (fs/file-name deps-file))
+        lein? (= "project.clj" (when deps-file (fs/file-name deps-file)))
         deps (if lein?
                (:deps (:deps (lein2deps/lein2deps {:project-clj deps-file})))
                (:deps (edn/read-string (slurp deps-file))))
@@ -38,10 +38,12 @@
                         (:out (p/sh {:dir root-dir} "clojure" "-Spath"))))
         classpath-seq (str/split classpath (re-pattern (System/getProperty "path.separator")))]
     {:unused-deps (vec (for [dep deps
-                            :when (:mvn/version (second dep))
-                            :let [jar (impl/find-dep-on-classpath dep classpath-seq)]
-                            :when jar
-                            :let [lib-namespaces (keys (impl/index-jar {} jar))]
+                             :when (let [coords (second dep)]
+                                     (or (:mvn/version coords)
+                                         (:git/sha coords)))
+                             :let [cp-entries (seq (impl/find-deps-on-classpath dep classpath-seq))]
+                             :when cp-entries
+                             :let [lib-namespaces (keys (impl/index-cp-entries {} cp-entries))]
                              :when (not (some #(contains? requires+imports %) lib-namespaces))]
                          dep))}))
 
