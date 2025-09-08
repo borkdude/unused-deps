@@ -10,11 +10,32 @@
 (defn when-pred [pred x]
   (when (pred x) x))
 
-(defn index-jar [index jar]
-  (let [jar (str jar)
-        jar-file (fs/file jar)]
-    (if-not (fs/directory? jar-file)
-      (with-open [jar-resource (java.util.jar.JarFile. jar-file)]
+(defn index-cp-entry [index cp-entry]
+  (let [cp-entry (str cp-entry)
+        cp-entry-file (fs/file cp-entry)]
+    (if (fs/directory? cp-entry-file)
+      (let [entries (file-seq cp-entry-file)]
+        (reduce (fn [acc e]
+                  (let [raw-name (.getName e)]
+                    (if (and (not (str/starts-with? raw-name "META"))
+                             (re-find suffix-re raw-name))
+                      (let [n (str/replace raw-name suffix-re "")
+                            n (str/replace n "_" "-")
+                            n (str/replace n "/" ".")
+                            n (symbol n)
+                            [_ group-id artifact version _]
+                            (re-find #"repository/(.*)/(.*)/(.*)/.*jar" cp-entry)]
+                        (prn :cp-entry cp-entry)
+                        (update acc n (fnil conj [])
+                                {:mvn/version version
+                                 :file raw-name
+                                 :group-id group-id
+                                 :artifact artifact}))
+                      acc)))
+                index
+                entries))
+      ;; assume jar file
+      (with-open [jar-resource (java.util.jar.JarFile. cp-entry-file)]
         (let [entries (enumeration-seq (.entries jar-resource))]
           (reduce (fn [acc e]
                     (let [raw-name (.getName e)]
@@ -25,7 +46,7 @@
                               n (str/replace n "/" ".")
                               n (symbol n)
                               [_ group-id artifact version _]
-                              (re-find #"repository/(.*)/(.*)/(.*)/.*jar" jar)]
+                              (re-find #"repository/(.*)/(.*)/(.*)/.*jar" cp-entry)]
                           (update acc n (fnil conj [])
                                   {:mvn/version version
                                    :file raw-name
@@ -33,16 +54,20 @@
                                    :artifact artifact}))
                         acc)))
                   index
-                  entries)))
-      index)))
+                  entries))))))
 
-(defn find-dep-on-classpath [[libname {:keys [:mvn/version]}] classpath-seq]
-  (let [libname+version (str (str/replace libname #"\." "/") "/" version)]
-    (some (fn [part]
-            (when (and (str/includes? part libname+version)
-                       (str/ends-with? part ".jar"))
-              part))
-          classpath-seq)))
+(defn index-cp-entries [index cp-entries]
+  (reduce index-cp-entry index cp-entries))
+
+(defn find-deps-on-classpath [[libname {:keys [mvn/version
+                                              git/sha]}] classpath-seq]
+  (let [libname+version (str (str/replace libname #"\." "/") "/" (or version sha))]
+    (filter (fn [part]
+              (when (and (str/includes? part libname+version)
+                         (or sha
+                             (str/ends-with? part ".jar")))
+                part))
+            classpath-seq)))
 
 ;; copied form edamame to include support for :import
 
@@ -163,6 +188,6 @@
 
 
 (comment
-  (find-dep-on-classpath ['io.github.borkdude/lein2deps {:mvn/version "0.1.0"}] (str/split (System/getProperty "java.class.path") #":"))
+  (find-deps-on-classpath ['io.github.borkdude/lein2deps {:mvn/version "0.1.0"}] (str/split (System/getProperty "java.class.path") #":"))
   (parse-ns-form *file*)
   )
