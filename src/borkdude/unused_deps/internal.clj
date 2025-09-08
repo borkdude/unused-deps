@@ -11,10 +11,10 @@
   (when (pred x) x))
 
 (defn index-cp-entry [index cp-entry]
-  (let [cp-entry (str cp-entry)
-        cp-entry-file (fs/file cp-entry)]
-    (if (fs/directory? cp-entry-file)
-      (if (fs/exists? cp-entry-file)
+  (if (fs/exists? cp-entry)
+    (let [cp-entry (str cp-entry)
+          cp-entry-file (fs/file cp-entry)]
+      (if (fs/directory? cp-entry-file)
         (let [entries (file-seq cp-entry-file)]
           (reduce (fn [acc e]
                     (let [relative-name (fs/relativize (fs/path cp-entry-file) (fs/path e))
@@ -30,28 +30,28 @@
                         acc)))
                   index
                   entries))
-        index)
-      ;; assume jar file
-      (with-open [jar-resource (java.util.jar.JarFile. cp-entry-file)]
-        (let [entries (enumeration-seq (.entries jar-resource))]
-          (reduce (fn [acc e]
-                    (let [raw-name (.getName e)]
-                      (if (and (not (str/starts-with? raw-name "META"))
-                               (re-find suffix-re raw-name))
-                        (let [n (str/replace raw-name suffix-re "")
-                              n (str/replace n "_" "-")
-                              n (str/replace n "/" ".")
-                              n (symbol n)
-                              #_#_[_ group-id artifact version _]
-                              (re-find #"repository/(.*)/(.*)/(.*)/.*jar" cp-entry)]
-                          (update acc n (fnil conj [])
-                                  {} #_{:mvn/version version
-                                        :file raw-name
-                                        :group-id group-id
-                                        :artifact artifact}))
-                        acc)))
-                  index
-                  entries))))))
+        ;; assume jar file
+        (with-open [jar-resource (java.util.jar.JarFile. cp-entry-file)]
+          (let [entries (enumeration-seq (.entries jar-resource))]
+            (reduce (fn [acc e]
+                      (let [raw-name (.getName e)]
+                        (if (and (not (str/starts-with? raw-name "META"))
+                                 (re-find suffix-re raw-name))
+                          (let [n (str/replace raw-name suffix-re "")
+                                n (str/replace n "_" "-")
+                                n (str/replace n "/" ".")
+                                n (symbol n)
+                                #_#_[_ group-id artifact version _]
+                                (re-find #"repository/(.*)/(.*)/(.*)/.*jar" cp-entry)]
+                            (update acc n (fnil conj [])
+                                    {} #_{:mvn/version version
+                                          :file raw-name
+                                          :group-id group-id
+                                          :artifact artifact}))
+                          acc)))
+                    index
+                    entries)))))
+    index))
 
 (defn index-cp-entries [index cp-entries]
   (reduce index-cp-entry index cp-entries))
