@@ -14,21 +14,23 @@
   (let [cp-entry (str cp-entry)
         cp-entry-file (fs/file cp-entry)]
     (if (fs/directory? cp-entry-file)
-      (let [entries (file-seq cp-entry-file)]
-        (reduce (fn [acc e]
-                  (let [relative-name (fs/relativize (fs/path cp-entry-file) (fs/path e))
-                        raw-name (str relative-name)]
-                    (if (and (not (str/starts-with? raw-name "META"))
-                             (re-find suffix-re raw-name))
-                      (let [n (str/replace raw-name suffix-re "")
-                            n (str/replace n "_" "-")
-                            n (str/replace n "/" ".")
-                            n (symbol n)]
-                        (update acc n (fnil conj [])
-                                {}))
-                      acc)))
-                index
-                entries))
+      (if (fs/exists? cp-entry-file)
+        (let [entries (file-seq cp-entry-file)]
+          (reduce (fn [acc e]
+                    (let [relative-name (fs/relativize (fs/path cp-entry-file) (fs/path e))
+                          raw-name (str relative-name)]
+                      (if (and (not (str/starts-with? raw-name "META"))
+                               (re-find suffix-re raw-name))
+                        (let [n (str/replace raw-name suffix-re "")
+                              n (str/replace n "_" "-")
+                              n (str/replace n "/" ".")
+                              n (symbol n)]
+                          (update acc n (fnil conj [])
+                                  {}))
+                        acc)))
+                  index
+                  entries))
+        index)
       ;; assume jar file
       (with-open [jar-resource (java.util.jar.JarFile. cp-entry-file)]
         (let [entries (enumeration-seq (.entries jar-resource))]
