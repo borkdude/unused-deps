@@ -23,14 +23,9 @@
                       (let [n (str/replace raw-name suffix-re "")
                             n (str/replace n "_" "-")
                             n (str/replace n "/" ".")
-                            n (symbol n)
-                            [_ group-id artifact version _]
-                            (re-find #"repository/(.*)/(.*)/(.*)/.*jar" cp-entry)]
+                            n (symbol n)]
                         (update acc n (fnil conj [])
-                                {:mvn/version version
-                                 :file raw-name
-                                 :group-id group-id
-                                 :artifact artifact}))
+                                {}))
                       acc)))
                 index
                 entries))
@@ -45,13 +40,13 @@
                               n (str/replace n "_" "-")
                               n (str/replace n "/" ".")
                               n (symbol n)
-                              [_ group-id artifact version _]
+                              #_#_[_ group-id artifact version _]
                               (re-find #"repository/(.*)/(.*)/(.*)/.*jar" cp-entry)]
                           (update acc n (fnil conj [])
-                                  {:mvn/version version
-                                   :file raw-name
-                                   :group-id group-id
-                                   :artifact artifact}))
+                                  {} #_{:mvn/version version
+                                        :file raw-name
+                                        :group-id group-id
+                                        :artifact artifact}))
                         acc)))
                   index
                   entries))))))
