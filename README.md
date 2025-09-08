@@ -60,10 +60,14 @@ not, bug me on slack or make a Github issue.
 The source paths are checked for namespaces that are required. If there is a
 `.jar` file that doesn't contain any of these namespaces it's considered unused.
 
-## Current limitations
+## Limitations
 
-Currently `unused-deps` only finds unused mvn dependencies. Support for git
-deps + local roots should be possible to add though.
+- `:local/root` isn't supported yet (should be easy to add)
+
+## False positives
+
+- Some libraries, such as JDBC drivers, register themselves on the classpath and
+  don't have any statically detectable code. These libraries might still be used but are reported as unused.
 
 ## License
 
