@@ -16,7 +16,8 @@
     (if (fs/directory? cp-entry-file)
       (let [entries (file-seq cp-entry-file)]
         (reduce (fn [acc e]
-                  (let [raw-name (.getName e)]
+                  (let [relative-name (fs/relativize (fs/path cp-entry-file) (fs/path e))
+                        raw-name (str relative-name)]
                     (if (and (not (str/starts-with? raw-name "META"))
                              (re-find suffix-re raw-name))
                       (let [n (str/replace raw-name suffix-re "")
@@ -25,7 +26,6 @@
                             n (symbol n)
                             [_ group-id artifact version _]
                             (re-find #"repository/(.*)/(.*)/(.*)/.*jar" cp-entry)]
-                        (prn :cp-entry cp-entry)
                         (update acc n (fnil conj [])
                                 {:mvn/version version
                                  :file raw-name
